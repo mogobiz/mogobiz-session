@@ -1,4 +1,4 @@
-package com.mogobiz.session
+package com.mogobiz.session.config
 
 import java.io.File
 
@@ -26,5 +26,4 @@ object Settings {
     require(CookieName.nonEmpty, "session.cookie.name must be non-empty")
     require(RememberCookieName.nonEmpty, "session.remember.cookie.name must be non-empty")
   }
-
 }

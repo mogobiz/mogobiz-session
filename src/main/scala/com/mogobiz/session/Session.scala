@@ -2,6 +2,7 @@ package com.mogobiz.session
 
 import java.util.UUID
 
+import com.mogobiz.session.config.Settings
 import spray.http.DateTime
 
 import scala.collection.mutable.Map

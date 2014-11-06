@@ -3,8 +3,9 @@ package com.mogobiz.session
 import java.io._
 import java.util.{Calendar, Date}
 
-import com.mogobiz.es.{EsClient}
+import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
+import com.mogobiz.session.config.Settings
 import shapeless._
 import spray.http.HttpHeaders.Cookie
 import spray.http.{DateTime, HttpCookie}
