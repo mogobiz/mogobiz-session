@@ -3,7 +3,7 @@ package com.mogobiz.session
 import java.io._
 import java.util.{Calendar, Date}
 
-import com.mogobiz.es.{EsContext, EsClient}
+import com.mogobiz.es.{EsClient}
 import com.mogobiz.json.BinaryConverter
 import shapeless._
 import spray.http.HttpHeaders.Cookie
