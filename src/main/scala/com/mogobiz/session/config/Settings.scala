@@ -5,7 +5,7 @@ import java.io.File
 import com.typesafe.config.ConfigFactory
 
 object Settings {
-  private val config = ConfigFactory.load("session")
+  private val config = ConfigFactory.load("session").withFallback(ConfigFactory.load("default-session"))
 
   object Session {
     val Secret = config getString "session.secret"
