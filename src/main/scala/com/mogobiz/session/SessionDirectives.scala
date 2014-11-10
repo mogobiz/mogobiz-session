@@ -23,7 +23,7 @@ trait SessionDirectives {
   import spray.routing.directives.CookieDirectives._
   import spray.routing.directives.HeaderDirectives._
 
-  def session: Directive[Session :: HNil] = headerValue {
+  private def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
       val xx = cookies.find(_.name == Settings.Session.CookieName).map { cookie =>
         println(cookie.name + "=" + cookie.content)
@@ -35,14 +35,19 @@ trait SessionDirectives {
         sessionFromCookie(cookie)
       }
     case _ => None
-  } | provide {
-    val session = Session()
-    backend.store(session)
-    session
   }
 
-  def optionalSession: Directive[Option[Session] :: HNil] =
-    session.hmap(_.map(shapeless.option)) | provide(None)
+  def session: Directive[Session :: HNil] = {
+    cookieSession() | provide {
+      val session = Session()
+      backend.store(session)
+      session
+    }
+  }
+
+  def optionalSession: Directive[Option[Session] :: HNil] = {
+    cookieSession().hmap(_.map(shapeless.option)) | provide(None)
+  }
 
   def setSession(session: Session): Directive0 = {
     setCookie(Session(session.data))
