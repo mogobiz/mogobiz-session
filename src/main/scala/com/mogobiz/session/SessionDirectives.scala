@@ -62,7 +62,7 @@ trait SessionDirectives {
     Session(backend.load(cookie.content).map(_.data).getOrElse(Map.empty[String, Any]), cookie.expires, cookie.maxAge, cookie.domain, cookie.path, cookie.secure, cookie.httpOnly, cookie.extension)
 
   implicit def sessionToCookie(session: Session): HttpCookie = {
-    println("storing cokkie" + session.id)
+    println("storing cookie" + session.id)
     val res = HttpCookie(Settings.Session.CookieName, backend.store(session), session.expires, session.maxAge, session.domain, session.path, session.secure, session.httpOnly, session.extension)
     res
   }
