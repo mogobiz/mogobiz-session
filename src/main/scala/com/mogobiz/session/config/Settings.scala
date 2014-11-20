@@ -8,7 +8,7 @@ object Settings {
   private val config = ConfigFactory.load("session").withFallback(ConfigFactory.load("default-session"))
 
   object Session {
-    val Secret = config getString "session.secret"
+    val CookieSecret = config getString "session.cookie.secret"
 
     val Folder = new File(config getString "session.folder")
 
@@ -22,7 +22,7 @@ object Settings {
 
     val RememberCookieMaxAge = config getLong "session.remember.cookie.maxage"
 
-    require(Secret.nonEmpty, "session.secret must be non-empty")
+    require(CookieSecret.nonEmpty, "session.secret must be non-empty")
     require(CookieName.nonEmpty, "session.cookie.name must be non-empty")
     require(RememberCookieName.nonEmpty, "session.remember.cookie.name must be non-empty")
   }

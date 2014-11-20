@@ -79,7 +79,7 @@ trait Backend {
 trait CookieBackend extends Backend {
   def store(session: Session): String = {
     val encoded = java.net.URLEncoder.encode(session.data.filterNot(_._1.contains(":")).map(d => d._1 + ":" + d._2).mkString("\u0000"), "UTF-8")
-    Crypto.sign(encoded, Settings.Session.Secret) + "-" + encoded
+    Crypto.sign(encoded, Settings.Session.CookieSecret) + "-" + encoded
   }
 
   def delete(uuid: String): Unit = {
@@ -105,7 +105,7 @@ trait CookieBackend extends Backend {
     try {
       val splitted = data.split("-")
       val message = splitted.tail.mkString("-")
-      if (safeEquals(splitted(0), Crypto.sign(message, Settings.Session.Secret)))
+      if (safeEquals(splitted(0), Crypto.sign(message, Settings.Session.CookieSecret)))
         Some(Session(data = urldecode(message)))
       else
         None
