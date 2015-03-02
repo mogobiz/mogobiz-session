@@ -9,7 +9,7 @@ import org.elasticsearch.transport.RemoteTransportException
 
 object DBInitializer {
   def apply(): Unit = try {
-    EsClient.client.sync.execute(create index Settings.Session.EsIndex)
+    EsClient().execute(create index Settings.Session.EsIndex).await
     Mapping.set()
     fillDB()
   } catch {

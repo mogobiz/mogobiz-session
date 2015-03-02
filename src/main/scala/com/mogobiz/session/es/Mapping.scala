@@ -14,7 +14,7 @@ import scala.concurrent.{Await, Future}
 object Mapping {
 
   val mappinNames = List("ESSession")
-  def clear = Await.result(EsClient.client.execute(delete index Settings.Session.EsIndex), Duration.Inf)
+  def clear = Await.result(EsClient().execute(delete index Settings.Session.EsIndex), Duration.Inf)
 
   def set() {
     def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
