@@ -7,9 +7,7 @@ package com.mogobiz.session
 import javax.crypto._
 import javax.crypto.spec.SecretKeySpec
 
-
 trait Crypto {
-
 
   def sign(message: String, key: Array[Byte]): String = {
     val mac = Mac.getInstance("HmacSHA1")
@@ -17,10 +15,9 @@ trait Crypto {
     Codecs.toHexString(mac.doFinal(message.getBytes("utf-8")))
   }
 
-  def sign(message: String, secret : String): String =
+  def sign(message: String, secret: String): String =
     sign(message, secret.getBytes("utf-8"))
 
 }
-
 
 object Crypto extends Crypto

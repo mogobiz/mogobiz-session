@@ -5,14 +5,14 @@
 package com.mogobiz.session
 
 import java.io._
-import java.util.{Calendar, Date}
+import java.util.{ Calendar, Date }
 
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
 import shapeless._
 import spray.http.HttpHeaders.Cookie
-import spray.http.{DateTime, HttpCookie}
+import spray.http.{ DateTime, HttpCookie }
 import spray.routing._
 
 import scala.collection.mutable.Map
@@ -163,18 +163,17 @@ trait FileBackend extends Backend {
 }
 
 case class ESSession(uuid: String,
-                     data: Array[Byte],
-                     expires: Option[DateTime],
-                     maxAge: Option[Long],
-                     domain: Option[String],
-                     path: Option[String],
-                     secure: Boolean,
-                     httpOnly: Boolean,
-                     extension: Option[String],
-                     _ttl: String,
-                     var dateCreated: Date = Calendar.getInstance().getTime,
-                     var lastUpdated: Date = Calendar.getInstance().getTime)
-
+  data: Array[Byte],
+  expires: Option[DateTime],
+  maxAge: Option[Long],
+  domain: Option[String],
+  path: Option[String],
+  secure: Boolean,
+  httpOnly: Boolean,
+  extension: Option[String],
+  _ttl: String,
+  var dateCreated: Date = Calendar.getInstance().getTime,
+  var lastUpdated: Date = Calendar.getInstance().getTime)
 
 trait ESBackend extends Backend {
 

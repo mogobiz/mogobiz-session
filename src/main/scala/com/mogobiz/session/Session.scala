@@ -12,13 +12,13 @@ import spray.http.DateTime
 import scala.collection.mutable.Map
 
 case class Session(data: Session.Data = Map((Settings.Session.CookieName, UUID.randomUUID.toString)),
-                   expires: Option[DateTime] = Some(DateTime.now + (Settings.Session.MaxAge * 1000)),
-                   maxAge: Option[Long] = Some(Settings.Session.MaxAge),
-                   domain: Option[String] = None,
-                   path: Option[String] = Some("/"),
-                   secure: Boolean = false,
-                   httpOnly: Boolean = true,
-                   extension: Option[String] = None) {
+    expires: Option[DateTime] = Some(DateTime.now + (Settings.Session.MaxAge * 1000)),
+    maxAge: Option[Long] = Some(Settings.Session.MaxAge),
+    domain: Option[String] = None,
+    path: Option[String] = Some("/"),
+    secure: Boolean = false,
+    httpOnly: Boolean = true,
+    extension: Option[String] = None) {
   private var dirty: Boolean = false
 
   def clear() = {
