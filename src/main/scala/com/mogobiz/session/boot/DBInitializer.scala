@@ -9,10 +9,13 @@ import com.mogobiz.session.config.Settings
 import com.mogobiz.session.es.Mapping
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.slf4j.Logger
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.transport.RemoteTransportException
+import org.slf4j.LoggerFactory
 
-object DBInitializer extends LazyLogging {
+object DBInitializer {
+  val logger = Logger(LoggerFactory.getLogger("com.mogobiz.session.boot.DBInitializer"))
   def apply(): Unit = try {
     EsClient().execute(create index Settings.Session.EsIndex).await
     Mapping.set()
