@@ -8,17 +8,18 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.session.config.Settings
 import com.mogobiz.session.es.Mapping
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.typesafe.scalalogging.LazyLogging
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.transport.RemoteTransportException
 
-object DBInitializer {
+object DBInitializer extends LazyLogging {
   def apply(): Unit = try {
     EsClient().execute(create index Settings.Session.EsIndex).await
     Mapping.set()
     fillDB()
   } catch {
     case e: RemoteTransportException if e.getCause().isInstanceOf[IndexAlreadyExistsException] =>
-      println(s"Index ${Settings.Session.EsIndex} was not created because it already exists.")
+      logger.warn(s"Index ${Settings.Session.EsIndex} was not created because it already exists.")
     case e: Throwable => e.printStackTrace()
   }
 

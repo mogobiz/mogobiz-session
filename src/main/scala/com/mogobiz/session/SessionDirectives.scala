@@ -10,6 +10,7 @@ import java.util.{ Calendar, Date }
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
+import com.typesafe.scalalogging.slf4j.LazyLogging
 import shapeless._
 import spray.http.HttpHeaders.Cookie
 import spray.http.{ DateTime, HttpCookie }
@@ -20,20 +21,20 @@ import scala.util.control.NonFatal
 
 case object MissingSessionCookieRejection extends Rejection
 
-trait SessionDirectives {
+trait SessionDirectives extends LazyLogging {
   backend: Backend =>
 
   import spray.routing.directives.BasicDirectives._
   import spray.routing.directives.CookieDirectives._
   import spray.routing.directives.HeaderDirectives._
 
-  private def cookieSession(): Directive1[Session] = headerValue {
+  protected def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
       val xx = cookies.find(_.name == Settings.Session.CookieName).map { cookie =>
-        println(cookie.name + "=" + cookie.content)
-        "Found"
-      }.getOrElse("NotFound")
-      println(xx)
+        logger.debug(cookie.name + "=" + cookie.content)
+        s"$Settings.Session.CookieName Found"
+      }.getOrElse(s"$Settings.Session.CookieName NotFound")
+      logger.debug(xx)
 
       cookies.find(_.name == Settings.Session.CookieName) map { cookie =>
         sessionFromCookie(cookie)
