@@ -10,7 +10,7 @@ import java.util.{ Calendar, Date }
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.StrictLogging
 import shapeless._
 import spray.http.HttpHeaders.Cookie
 import spray.http.{ DateTime, HttpCookie }
@@ -21,7 +21,7 @@ import scala.util.control.NonFatal
 
 case object MissingSessionCookieRejection extends Rejection
 
-trait SessionDirectives extends LazyLogging {
+trait SessionDirectives extends StrictLogging {
   backend: Backend =>
 
   import spray.routing.directives.BasicDirectives._

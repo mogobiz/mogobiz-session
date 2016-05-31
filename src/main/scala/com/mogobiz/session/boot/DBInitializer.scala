@@ -8,8 +8,8 @@ import com.mogobiz.es.EsClient
 import com.mogobiz.session.config.Settings
 import com.mogobiz.session.es.Mapping
 import com.sksamuel.elastic4s.ElasticDsl._
-import com.typesafe.scalalogging.LazyLogging
-import com.typesafe.scalalogging.slf4j.Logger
+import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.Logger
 import org.elasticsearch.indices.IndexAlreadyExistsException
 import org.elasticsearch.transport.RemoteTransportException
 import org.slf4j.LoggerFactory
