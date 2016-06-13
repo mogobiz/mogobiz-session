@@ -6,8 +6,8 @@ package com.mogobiz.session
 
 import java.util.UUID
 
+import akka.http.scaladsl.model.DateTime
 import com.mogobiz.session.config.Settings
-import spray.http.DateTime
 
 import scala.collection.mutable.Map
 

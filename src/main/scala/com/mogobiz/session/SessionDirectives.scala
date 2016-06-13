@@ -5,16 +5,21 @@
 package com.mogobiz.session
 
 import java.io._
-import java.util.{ Calendar, Date }
+import java.util.{Calendar, Date}
 
+import akka.http.scaladsl.model.DateTime
+import akka.http.scaladsl.model.headers.{Cookie, HttpCookie}
+import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Rejection}
+import akka.shapeless.HNil
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
+//import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
 import com.typesafe.scalalogging.StrictLogging
-import shapeless._
-import spray.http.HttpHeaders.Cookie
-import spray.http.{ DateTime, HttpCookie }
-import spray.routing._
+//import spray.http.HttpHeaders.Cookie
+//import spray.http.{DateTime, HttpCookie}
+//import spray.routing._
+import akka.http.scaladsl.server.Directives._
 
 import scala.collection.mutable.Map
 import scala.util.control.NonFatal
@@ -24,25 +29,25 @@ case object MissingSessionCookieRejection extends Rejection
 trait SessionDirectives extends StrictLogging {
   backend: Backend =>
 
-  import spray.routing.directives.BasicDirectives._
-  import spray.routing.directives.CookieDirectives._
-  import spray.routing.directives.HeaderDirectives._
+//  import spray.routing.directives.BasicDirectives._
+//  import spray.routing.directives.CookieDirectives._
+//  import spray.routing.directives.HeaderDirectives._
 
   protected def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
       val xx = cookies.find(_.name == Settings.Session.CookieName).map { cookie =>
-        logger.debug(cookie.name + "=" + cookie.content)
+        logger.debug(cookie.name + "=" + cookie.value)
         s"$Settings.Session.CookieName Found"
       }.getOrElse(s"$Settings.Session.CookieName NotFound")
       logger.debug(xx)
 
       cookies.find(_.name == Settings.Session.CookieName) map { cookie =>
-        sessionFromCookie(cookie)
+        sessionFromCookie(cookie.toCookie())
       }
     case _ => None
   }
 
-  def session: Directive[Session :: HNil] = {
+  def session: Directive1[Session] = {
     cookieSession() | provide {
       val session = Session()
       backend.store(session)
@@ -50,8 +55,8 @@ trait SessionDirectives extends StrictLogging {
     }
   }
 
-  def optionalSession: Directive[Option[Session] :: HNil] = {
-    cookieSession().hmap(_.map(shapeless.option)) | provide(None)
+  def optionalSession: Directive1[Option[Session]] = {
+    cookieSession().map(session => Option(session))
   }
 
   def setSession(session: Session): Directive0 = {
@@ -64,7 +69,7 @@ trait SessionDirectives extends StrictLogging {
   }
 
   implicit def sessionFromCookie(cookie: HttpCookie): Session =
-    Session(backend.load(cookie.content).map(_.data).getOrElse(Map.empty[String, Any]), cookie.expires, cookie.maxAge, cookie.domain, cookie.path, cookie.secure, cookie.httpOnly, cookie.extension)
+    Session(backend.load(cookie.value).map(_.data).getOrElse(Map.empty[String, Any]), cookie.expires, cookie.maxAge, cookie.domain, cookie.path, cookie.secure, cookie.httpOnly, cookie.extension)
 
   implicit def sessionToCookie(session: Session): HttpCookie = {
     val res = HttpCookie(Settings.Session.CookieName, backend.store(session), session.expires, session.maxAge, session.domain, session.path, session.secure, session.httpOnly, session.extension)
