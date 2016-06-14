@@ -5,11 +5,11 @@
 package com.mogobiz.session
 
 import java.io._
-import java.util.{Calendar, Date}
+import java.util.{ Calendar, Date }
 
 import akka.http.scaladsl.model.DateTime
-import akka.http.scaladsl.model.headers.{Cookie, HttpCookie}
-import akka.http.scaladsl.server.{Directive, Directive0, Directive1, Rejection}
+import akka.http.scaladsl.model.headers.{ Cookie, HttpCookie }
+import akka.http.scaladsl.server.{ Directive, Directive0, Directive1, Rejection }
 import akka.shapeless.HNil
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
@@ -29,9 +29,9 @@ case object MissingSessionCookieRejection extends Rejection
 trait SessionDirectives extends StrictLogging {
   backend: Backend =>
 
-//  import spray.routing.directives.BasicDirectives._
-//  import spray.routing.directives.CookieDirectives._
-//  import spray.routing.directives.HeaderDirectives._
+  //  import spray.routing.directives.BasicDirectives._
+  //  import spray.routing.directives.CookieDirectives._
+  //  import spray.routing.directives.HeaderDirectives._
 
   protected def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
@@ -100,7 +100,7 @@ trait CookieBackend extends Backend {
     // Do not change this unless you understand the security issues behind timing attacks.
     // This method intentionally runs in constant time if the two strings have the same length.
     // If it didn't, it would be vulnerable to a timing attack.
-    def safeEquals(a: String, b: String) = {
+    def safeEquals(a: Array[Char], b: Array[Char]) = {
       if (a.length != b.length) false
       else {
         var equal = 0
@@ -114,7 +114,7 @@ trait CookieBackend extends Backend {
     try {
       val splitted = data.split("-")
       val message = splitted.tail.mkString("-")
-      if (safeEquals(splitted(0), Crypto.sign(message, Settings.Session.CookieSecret)))
+      if (safeEquals(splitted(0).toCharArray, Crypto.sign(message, Settings.Session.CookieSecret).toCharArray))
         Some(Session(data = urldecode(message)))
       else
         None
