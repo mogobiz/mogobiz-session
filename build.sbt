@@ -2,4 +2,3 @@
 name := "mogobiz-session"
 
 
-scalariformSettings
