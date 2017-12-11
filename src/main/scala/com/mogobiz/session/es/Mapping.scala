@@ -4,9 +4,11 @@
 
 package com.mogobiz.session.es
 
+import akka.actor.ActorSystem
 import com.mogobiz.es.EsClient
 import com.mogobiz.session.config.Settings
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.index.admin.DeleteIndexResponse
 import spray.client.pipelining._
 import spray.http._
 
@@ -17,16 +19,19 @@ import scala.concurrent.{Await, Future}
 object Mapping {
 
   val mappinNames = List("ESSession")
-  def clear = Await.result(EsClient().execute(delete index Settings.Session.EsIndex), Duration.Inf)
+
+  def clear: DeleteIndexResponse =
+    Await.result(EsClient().execute(deleteIndex(Settings.Session.EsIndex)), Duration.Inf)
 
   def set() {
     def route(url: String) = "http://" + com.mogobiz.es.Settings.ElasticSearch.FullUrl + url
+
     def mappingFor(name: String) = {
       // new File(this.getClass.getClassLoader.getResource(s"es/session/mappings/$name.json").toURI)
-      getClass().getResourceAsStream(s"/es/session/mappings/$name.json")
+      getClass.getResourceAsStream(s"/es/session/mappings/$name.json")
     }
 
-    implicit val system                                                = akka.actor.ActorSystem("mogopay-boot")
+    implicit val system: ActorSystem                                   = akka.actor.ActorSystem("mogopay-boot")
     val pipeline: HttpRequest => scala.concurrent.Future[HttpResponse] = sendReceive
 
     mappinNames foreach { name =>
