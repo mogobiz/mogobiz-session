@@ -7,32 +7,30 @@ package com.mogobiz.session
 import java.io._
 import java.util.{Calendar, Date}
 
+import akka.http.scaladsl.model.headers.{Cookie, HttpCookie}
+import akka.http.scaladsl.server.directives.CookieDirectives._
+import akka.http.scaladsl.server.directives.HeaderDirectives._
+import akka.http.scaladsl.server.directives.BasicDirectives._
+import akka.http.scaladsl.server.{Directive0, Directive1, Rejection}
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
-import com.typesafe.scalalogging.StrictLogging
-import shapeless._
-import spray.http.HttpHeaders.Cookie
-import spray.http.{DateTime, HttpCookie}
-import spray.routing._
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
+import org.joda.time.DateTime
 
 import scala.collection.mutable.Map
 import scala.util.control.NonFatal
 
 case object MissingSessionCookieRejection extends Rejection
 
-trait SessionDirectives extends StrictLogging { backend: Backend =>
-
-  import spray.routing.directives.BasicDirectives._
-  import spray.routing.directives.CookieDirectives._
-  import spray.routing.directives.HeaderDirectives._
+trait SessionDirectives extends LazyLogging { backend: Backend =>
 
   protected def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
       val xx = cookies
         .find(_.name == Settings.Session.CookieName)
         .map { cookie =>
-          logger.debug(cookie.name + "=" + cookie.content)
+          logger.debug(cookie.name + "=" + cookie.value)
           s"$Settings.Session.CookieName Found"
         }
         .getOrElse(s"$Settings.Session.CookieName NotFound")
@@ -44,7 +42,7 @@ trait SessionDirectives extends StrictLogging { backend: Backend =>
     case _ => None
   }
 
-  def session: Directive[Session :: HNil] = {
+  def session: Directive1[Session] = {
     cookieSession() | provide {
       val session = Session()
       backend.store(session)
@@ -52,39 +50,48 @@ trait SessionDirectives extends StrictLogging { backend: Backend =>
     }
   }
 
-  def optionalSession: Directive[Option[Session] :: HNil] = {
-    cookieSession().hmap(_.map(shapeless.option)) | provide(None)
+  def optionalSession: Directive1[Option[Session]] = {
+    cookieSession().map(session => Option(session))
   }
 
   def setSession(session: Session): Directive0 = {
     setCookie(Session(session.data))
   }
 
-  def killSession(session: Session, domain: String = "", path: String = ""): Directive0 = {
+  def killSession(session: Session,
+                  domain: String = "",
+                  path: String = ""): Directive0 = {
     backend.delete(session.id)
     deleteCookie(Settings.Session.CookieName, domain, path)
   }
 
   implicit def sessionFromCookie(cookie: HttpCookie): Session =
-    Session(backend.load(cookie.content).map(_.data).getOrElse(Map.empty[String, Any]),
-            cookie.expires,
-            cookie.maxAge,
-            cookie.domain,
-            cookie.path,
-            cookie.secure,
-            cookie.httpOnly,
-            cookie.extension)
+    Session(
+      backend
+        .load(cookie.value)
+        .map(_.data)
+        .getOrElse(Map.empty[String, Any]),
+      cookie.expires,
+      cookie.maxAge,
+      cookie.domain,
+      cookie.path,
+      cookie.secure,
+      cookie.httpOnly,
+      cookie.extension
+    )
 
   implicit def sessionToCookie(session: Session): HttpCookie = {
-    val res = HttpCookie(Settings.Session.CookieName,
-                         backend.store(session),
-                         session.expires,
-                         session.maxAge,
-                         session.domain,
-                         session.path,
-                         session.secure,
-                         session.httpOnly,
-                         session.extension)
+    val res = HttpCookie(
+      Settings.Session.CookieName,
+      backend.store(session),
+      session.expires,
+      session.maxAge,
+      session.domain,
+      session.path,
+      session.secure,
+      session.httpOnly,
+      session.extension
+    )
     res
   }
 }
@@ -100,7 +107,11 @@ trait Backend {
 trait CookieBackend extends Backend {
   def store(session: Session): String = {
     val encoded = java.net.URLEncoder
-      .encode(session.data.filterNot(_._1.contains(":")).map(d => d._1 + ":" + d._2).mkString("\u0000"), "UTF-8")
+      .encode(session.data
+                .filterNot(_._1.contains(":"))
+                .map(d => d._1 + ":" + d._2)
+                .mkString("\u0000"),
+              "UTF-8")
     Crypto.sign(encoded, Settings.Session.CookieSecret) + "-" + encoded
   }
 
@@ -111,11 +122,11 @@ trait CookieBackend extends Backend {
   def load(data: String): Option[Session] = {
     def urldecode(data: String) =
       Map[String, Any](
-          java.net.URLDecoder
-            .decode(data, "UTF-8")
-            .split("\u0000")
-            .map(_.split(":"))
-            .map(p => p(0) -> p.drop(1).mkString(":")): _*)
+        java.net.URLDecoder
+          .decode(data, "UTF-8")
+          .split("\u0000")
+          .map(_.split(":"))
+          .map(p => p(0) -> p.drop(1).mkString(":")): _*)
     // Do not change this unless you understand the security issues behind timing attacks.
     // This method intentionally runs in constant time if the two strings have the same length.
     // If it didn't, it would be vulnerable to a timing attack.
@@ -132,8 +143,9 @@ trait CookieBackend extends Backend {
 
     try {
       val splitted = data.split("-")
-      val message  = splitted.tail.mkString("-")
-      if (safeEquals(splitted(0), Crypto.sign(message, Settings.Session.CookieSecret)))
+      val message = splitted.tail.mkString("-")
+      if (safeEquals(splitted(0),
+                     Crypto.sign(message, Settings.Session.CookieSecret)))
         Some(Session(data = urldecode(message)))
       else
         None
@@ -151,12 +163,13 @@ trait FileBackend extends Backend {
   private val converter = new BinaryConverter[Session.Data] {}
 
   def store(session: Session): String = {
-    val uuid        = session(Settings.Session.CookieName).asInstanceOf[String]
-    val raw         = converter.fromDomain(session)
-    val sessionFile = new File(Settings.Session.Folder, filename("session", uuid))
-    val out         = new FileOutputStream(sessionFile)
-    val buffer      = new BufferedOutputStream(out)
-    val output      = new ObjectOutputStream(buffer)
+    val uuid = session(Settings.Session.CookieName).asInstanceOf[String]
+    val raw = converter.fromDomain(session)
+    val sessionFile =
+      new File(Settings.Session.Folder, filename("session", uuid))
+    val out = new FileOutputStream(sessionFile)
+    val buffer = new BufferedOutputStream(out)
+    val output = new ObjectOutputStream(buffer)
     try {
       output.writeObject(raw)
     } finally {
@@ -166,16 +179,18 @@ trait FileBackend extends Backend {
   }
 
   def delete(uuid: String): Unit = {
-    val sessionFile = new File(Settings.Session.Folder, filename("session", uuid))
+    val sessionFile =
+      new File(Settings.Session.Folder, filename("session", uuid))
     sessionFile.delete()
   }
 
   def load(uuid: String): Option[Session] = {
-    val sessionFile = new FileInputStream(new File(Settings.Session.Folder, filename("session", uuid)))
+    val sessionFile = new FileInputStream(
+      new File(Settings.Session.Folder, filename("session", uuid)))
     try {
       val buffer = new BufferedInputStream(sessionFile)
-      val input  = new ObjectInputStream(buffer)
-      val raw    = input.readObject().asInstanceOf[Array[Byte]]
+      val input = new ObjectInputStream(buffer)
+      val raw = input.readObject().asInstanceOf[Array[Byte]]
       Some(converter.toDomain(raw))
     } catch {
       case NonFatal(e) =>
@@ -190,7 +205,7 @@ trait FileBackend extends Backend {
 case class ESSession(uuid: String,
                      data: Array[Byte],
                      expires: Option[DateTime],
-                     maxAge: Option[Long],
+                     maxAge: Option[Int],
                      domain: Option[String],
                      path: Option[String],
                      secure: Boolean,
@@ -212,8 +227,8 @@ trait ESBackend extends Backend {
   //  def queryRoot(): Future[HttpResponse] = pipeline(Get(route("/")))
   //  override def receive: Actor.Receive = execute
 
-  private val ES_URL        = "http://localhost"
-  private val ES_HTTP_PORT  = 9200
+  private val ES_URL = "http://localhost"
+  private val ES_HTTP_PORT = 9200
   private val SESSION_INDEX = "sessions"
 
   private val ES_FULL_URL = ES_URL + ":" + ES_HTTP_PORT
@@ -226,16 +241,18 @@ trait ESBackend extends Backend {
 
   def store(session: Session): String = {
     val raw = converter.fromDomain(session)
-    val esSession = ESSession(session(Settings.Session.CookieName).asInstanceOf[String],
-                              data = raw,
-                              expires = session.expires,
-                              maxAge = session.maxAge,
-                              domain = session.domain,
-                              path = session.path,
-                              secure = session.secure,
-                              httpOnly = session.httpOnly,
-                              extension = session.extension,
-                              _ttl = s"${Settings.Session.MaxAge}s")
+    val esSession = ESSession(
+      session(Settings.Session.CookieName).asInstanceOf[String],
+      data = raw,
+      expires = session.expires,
+      maxAge = session.maxAge,
+      domain = session.domain,
+      path = session.path,
+      secure = session.secure,
+      httpOnly = session.httpOnly,
+      extension = session.extension,
+      _ttl = s"${Settings.Session.MaxAge}s"
+    )
     EsClient.index(Settings.Session.EsIndex, esSession, false)
   }
 

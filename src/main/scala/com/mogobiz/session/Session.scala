@@ -6,14 +6,16 @@ package com.mogobiz.session
 
 import java.util.UUID
 
+import akka.http.scaladsl.model.DateTime
 import com.mogobiz.session.config.Settings
-import spray.http.DateTime
 
 import scala.collection.mutable.Map
 
-case class Session(data: Session.Data = Map((Settings.Session.CookieName, UUID.randomUUID.toString)),
-                   expires: Option[DateTime] = Some(DateTime.now + (Settings.Session.MaxAge * 1000)),
-                   maxAge: Option[Long] = Some(Settings.Session.MaxAge),
+case class Session(data: Session.Data = Map(
+                     (Settings.Session.CookieName, UUID.randomUUID.toString)),
+                   expires: Option[DateTime] = Some(
+                     DateTime.now + (1000 * Settings.Session.MaxAge)),
+                   maxAge: Option[Int] = Some(Settings.Session.MaxAge),
                    domain: Option[String] = None,
                    path: Option[String] = Some("/"),
                    secure: Boolean = false,

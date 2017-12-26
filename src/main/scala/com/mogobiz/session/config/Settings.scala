@@ -9,7 +9,9 @@ import java.io.File
 import com.typesafe.config.ConfigFactory
 
 object Settings {
-  private val config = ConfigFactory.load("session").withFallback(ConfigFactory.load("default-session"))
+  private val config = ConfigFactory
+    .load("session")
+    .withFallback(ConfigFactory.load("default-session"))
 
   object Session {
     val CookieSecret = config getString "session.cookie.secret"
@@ -20,7 +22,7 @@ object Settings {
 
     val CookieName = config getString "session.cookie.name"
 
-    val MaxAge = config getLong "session.maxage"
+    val MaxAge = config getInt "session.maxage"
 
     val RememberCookieName = config getString "session.remember.cookie.name"
 
@@ -28,6 +30,7 @@ object Settings {
 
     require(CookieSecret.nonEmpty, "session.secret must be non-empty")
     require(CookieName.nonEmpty, "session.cookie.name must be non-empty")
-    require(RememberCookieName.nonEmpty, "session.remember.cookie.name must be non-empty")
+    require(RememberCookieName.nonEmpty,
+            "session.remember.cookie.name must be non-empty")
   }
 }
