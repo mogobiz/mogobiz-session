@@ -6,21 +6,22 @@ package com.mogobiz.session
 
 import java.util.UUID
 
-import akka.http.scaladsl.model.DateTime
 import com.mogobiz.session.config.Settings
+import org.joda.time.DateTime
 
 import scala.collection.mutable.Map
 
-case class Session(data: Session.Data = Map(
-                     (Settings.Session.CookieName, UUID.randomUUID.toString)),
-                   expires: Option[DateTime] = Some(
-                     DateTime.now + (1000 * Settings.Session.MaxAge)),
-                   maxAge: Option[Int] = Some(Settings.Session.MaxAge),
-                   domain: Option[String] = None,
-                   path: Option[String] = Some("/"),
-                   secure: Boolean = false,
-                   httpOnly: Boolean = true,
-                   extension: Option[String] = None) {
+case class Session(
+    data: Session.Data = Map(
+      (Settings.Session.CookieName, UUID.randomUUID.toString)),
+    expires: Option[DateTime] = Some(
+      new DateTime(DateTime.now.getMillis + (1000 * Settings.Session.MaxAge))),
+    maxAge: Option[Long] = Some(Settings.Session.MaxAge),
+    domain: Option[String] = None,
+    path: Option[String] = Some("/"),
+    secure: Boolean = false,
+    httpOnly: Boolean = true,
+    extension: Option[String] = None) {
   private var dirty: Boolean = false
 
   def clear() = {

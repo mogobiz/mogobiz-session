@@ -22,7 +22,7 @@ object Settings {
 
     val CookieName = config getString "session.cookie.name"
 
-    val MaxAge = config getInt "session.maxage"
+    val MaxAge = config getLong "session.maxage"
 
     val RememberCookieName = config getString "session.remember.cookie.name"
 

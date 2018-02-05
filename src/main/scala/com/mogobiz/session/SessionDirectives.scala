@@ -7,23 +7,25 @@ package com.mogobiz.session
 import java.io._
 import java.util.{Calendar, Date}
 
+import akka.http.scaladsl.model
 import akka.http.scaladsl.model.headers.{Cookie, HttpCookie}
+import akka.http.scaladsl.server.directives.BasicDirectives._
 import akka.http.scaladsl.server.directives.CookieDirectives._
 import akka.http.scaladsl.server.directives.HeaderDirectives._
-import akka.http.scaladsl.server.directives.BasicDirectives._
 import akka.http.scaladsl.server.{Directive0, Directive1, Rejection}
 import com.mogobiz.es.EsClient
 import com.mogobiz.json.BinaryConverter
 import com.mogobiz.session.config.Settings
-import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
-import org.joda.time.DateTime
+import com.typesafe.scalalogging.LazyLogging
+import org.joda.time
 
 import scala.collection.mutable.Map
 import scala.util.control.NonFatal
 
 case object MissingSessionCookieRejection extends Rejection
 
-trait SessionDirectives extends LazyLogging { backend: Backend =>
+trait SessionDirectives extends LazyLogging {
+  backend: Backend =>
 
   protected def cookieSession(): Directive1[Session] = headerValue {
     case Cookie(cookies) =>
@@ -37,7 +39,7 @@ trait SessionDirectives extends LazyLogging { backend: Backend =>
       logger.debug(xx)
 
       cookies.find(_.name == Settings.Session.CookieName) map { cookie =>
-        sessionFromCookie(cookie)
+        sessionFromCookie(cookie.toCookie())
       }
     case _ => None
   }
@@ -71,7 +73,7 @@ trait SessionDirectives extends LazyLogging { backend: Backend =>
         .load(cookie.value)
         .map(_.data)
         .getOrElse(Map.empty[String, Any]),
-      cookie.expires,
+      cookie.expires.map(akkaDate => new time.DateTime(akkaDate.clicks)),
       cookie.maxAge,
       cookie.domain,
       cookie.path,
@@ -84,7 +86,7 @@ trait SessionDirectives extends LazyLogging { backend: Backend =>
     val res = HttpCookie(
       Settings.Session.CookieName,
       backend.store(session),
-      session.expires,
+      session.expires.map(jodaDate => model.DateTime(jodaDate.getMillis)),
       session.maxAge,
       session.domain,
       session.path,
@@ -127,6 +129,7 @@ trait CookieBackend extends Backend {
           .split("\u0000")
           .map(_.split(":"))
           .map(p => p(0) -> p.drop(1).mkString(":")): _*)
+
     // Do not change this unless you understand the security issues behind timing attacks.
     // This method intentionally runs in constant time if the two strings have the same length.
     // If it didn't, it would be vulnerable to a timing attack.
@@ -204,8 +207,8 @@ trait FileBackend extends Backend {
 
 case class ESSession(uuid: String,
                      data: Array[Byte],
-                     expires: Option[DateTime],
-                     maxAge: Option[Int],
+                     expires: Option[model.DateTime],
+                     maxAge: Option[Long],
                      domain: Option[String],
                      path: Option[String],
                      secure: Boolean,
@@ -244,7 +247,8 @@ trait ESBackend extends Backend {
     val esSession = ESSession(
       session(Settings.Session.CookieName).asInstanceOf[String],
       data = raw,
-      expires = session.expires,
+      expires =
+        session.expires.map(jodaDate => model.DateTime(jodaDate.getMillis)),
       maxAge = session.maxAge,
       domain = session.domain,
       path = session.path,
